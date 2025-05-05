@@ -1,0 +1,28 @@
+backend/
+├── config/
+│   ├── cloudinary.js
+│   └── db.js
+├── controllers/
+│   ├── authController.js
+│   ├── todoController.js
+│   └── userController.js
+├── database/
+│   └── models/
+│       ├── Todo.js
+│       ├── User.js
+│       └── token.js
+├── middleware/
+│   ├── auth.js
+│   ├── error.js
+│   └── upload.js
+├── routes/
+│   ├── authRoutes.js
+│   ├── todoRoutes.js
+│   └── userRoutes.js
+├── utilities/
+│   ├── ApiError.js
+│   ├── ApiResponse.js
+│   └── asyncHandler.js
+├── .env
+├── app.js
+└── server.js

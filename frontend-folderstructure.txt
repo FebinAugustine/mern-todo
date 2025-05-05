@@ -1,0 +1,35 @@
+frontend/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   │   ├── auth/
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
+│   │   ├── todo/
+│   │   │   ├── TodoCard.jsx
+│   │   │   ├── TodoForm.jsx
+│   │   │   ├── TodoModal.jsx
+│   │   │   └── TodoSection.jsx
+│   │   ├── Navbar.jsx
+│   │   └── ProtectedRoute.jsx
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── Home.jsx
+│   │   ├── Login.jsx
+│   │   └── Register.jsx
+│   ├── store/
+│   │   ├── authStore.js
+│   │   └── todoStore.js
+│   ├── api/
+│   │   ├── auth.js
+│   │   └── todo.js
+│   ├── hooks/
+│   │   └── useAuthCheck.js
+│   ├── App.jsx
+│   ├── index.css
+│   ├── main.jsx
+│   └── routes.jsx
+├── .env
+├── package.json
+└── tailwind.config.js
