@@ -1,4 +1,4 @@
-<h1 align="center">E-Commerce Store 🛒</h1>
+<h1 align="center">TODO WEB APP 🛒</h1>
 
 About This Course:
 
