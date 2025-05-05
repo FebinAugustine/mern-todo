@@ -4,7 +4,6 @@ About This Course:
 
 - 🚀 Project Setup
 - 🗄️ MongoDB Integration
-
 - 🔐 Robust Authentication System
 - 🔑 JWT with Refresh/Access Tokens
 - 📝 User Register & Login
