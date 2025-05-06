@@ -6,32 +6,27 @@ const storage = multer.diskStorage({
     cb(null, "./public/temp");
   },
   filename: function (req, file, cb) {
+    // Fix filename generation
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  const filetypes = /jpe?g|png|webp/;
-  const mimetypes = /image\/jpe?g|image\/png|image\/webp/;
-
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = mimetypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error("Images only!"), false);
-  }
-};
-
 const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: function (req, file, cb) {
+    if (!file.mimetype.match(/^image\/(jpe?g|png|gif|webp)$/)) {
+      return cb(new Error("Only image files are allowed!"), false);
+    }
+    cb(null, true);
+  },
 });
 
-const uploadSingleAvatar = upload.single("avatar");
-
-export { upload, uploadSingleAvatar };
+// Export the configured middleware directly
+export const uploadSingleAvatar = upload.single("avatar");

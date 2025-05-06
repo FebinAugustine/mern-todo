@@ -5,11 +5,13 @@ import TodoSection from "../components/todo/TodoSection";
 import TodoModal from "../components/todo/TodoModal";
 import useTodoStore from "../store/todoStore";
 import useAuthStore from "../store/authStore";
+import useThemeStore from "../store/themeStore"; // Import theme store
 import todoService from "../api/todo";
 
 const Dashboard = () => {
   const { activeTodos, completedTodos, isModalOpen } = useTodoStore();
   const { accessToken } = useAuthStore();
+  const { darkMode } = useThemeStore(); // Get dark mode state
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,14 +31,26 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div
+        className={`min-h-screen flex items-center justify-center ${
+          darkMode ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
+        <div
+          className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${
+            darkMode ? "border-indigo-400" : "border-indigo-500"
+          }`}
+        ></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className={`min-h-screen transition-colors duration-200 ${
+        darkMode ? "bg-gray-900" : "bg-gray-50"
+      }`}
+    >
       <Navbar />
 
       <main className="container mx-auto px-4 py-8">

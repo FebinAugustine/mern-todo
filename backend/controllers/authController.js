@@ -5,6 +5,8 @@ import { ApiResponse } from "../utilities/ApiResponse.js";
 import { asyncHandler } from "../utilities/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
+import fs from "fs";
+import path from "path";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -22,45 +24,96 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
+  try {
+    // 1. Get user details from request
+    const { username, email, password } = req.body;
 
-  if ([username, email, password].some((field) => field?.trim() === "")) {
-    throw new ApiError(400, "All fields are required");
-  }
-
-  const existedUser = await User.findOne({ $or: [{ username }, { email }] });
-  if (existedUser) {
-    throw new ApiError(409, "User with email or username already exists");
-  }
-
-  let avatar;
-  if (req.file) {
-    avatar = await uploadOnCloudinary(req.file.path);
-    if (!avatar) {
-      throw new ApiError(400, "Avatar file is required");
+    // 2. Validation
+    if (!username || !email || !password) {
+      throw new ApiError(400, "All fields are required");
     }
+
+    // 3. Check if user already exists
+    const existedUser = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (existedUser) {
+      throw new ApiError(409, "User with email or username already exists");
+    }
+
+    // 4. Handle avatar upload
+    let avatar;
+    if (req.file) {
+      try {
+        console.log("Processing avatar:", req.file);
+
+        // Use req.file directly (single file upload)
+        const avatarLocalPath = req.file.path;
+
+        // Upload to Cloudinary
+        const cloudinaryResponse = await uploadOnCloudinary(avatarLocalPath);
+
+        if (!cloudinaryResponse?.url) {
+          throw new ApiError(400, "Failed to upload avatar");
+        }
+
+        avatar = {
+          public_id: cloudinaryResponse.public_id,
+          url: cloudinaryResponse.url,
+        };
+      } catch (error) {
+        // Cleanup and error handling
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        throw new ApiError(500, `Avatar processing failed: ${error.message}`);
+      }
+    }
+
+    // 5. Create user in database
+    const user = await User.create({
+      username,
+      email,
+      password,
+      avatar: avatar || {
+        public_id: "",
+        url: "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740",
+      },
+    });
+
+    // 6. Remove sensitive fields and return response
+    const createdUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
+    if (!createdUser) {
+      throw new ApiError(500, "Failed to create user");
+    }
+
+    // After creating the user, generate tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+      user._id
+    );
+
+    // Update the response to include tokens and user data
+    return res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          user: createdUser,
+          accessToken,
+          refreshToken,
+        },
+        "User registered successfully"
+      )
+    );
+  } catch (error) {
+    // Clean up any temp files
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw error;
   }
-
-  const user = await User.create({
-    username: username.toLowerCase(),
-    email,
-    password,
-    avatar: avatar || {
-      public_id: "",
-      url: "https://res.cloudinary.com/febincloudinary/image/upload/w_1000,c_fill,ar_1:1,g_auto,r_max,bo_5px_solid_red,b_rgb:262c35/v1744274425/nx0sgxabxk1ro2okgbyu.jpg",
-    },
-  });
-
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user");
-  }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered successfully"));
 });
 
 // authController.js

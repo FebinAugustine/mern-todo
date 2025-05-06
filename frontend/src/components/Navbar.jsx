@@ -1,48 +1,19 @@
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
+import useThemeStore from "../store/themeStore"; // Add this import
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated, initializeAuth } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
+  const { darkMode } = useThemeStore(); // Get darkMode state
   const [isLoading, setIsLoading] = useState(true);
-  const [userLoading, setUserLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    let isMounted = true;
-    const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.warn("Auth check timeout");
-        setIsLoading(false);
-        setUserLoading(false);
-      }
-    }, 3000); // Reduced to 3 seconds
-
-    const checkAuth = async () => {
-      try {
-        // Only initialize if we have stored auth but no current user
-        if (localStorage.getItem("auth-storage") && !user) {
-          await initializeAuth();
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-      } finally {
-        if (isMounted) {
-          clearTimeout(timeoutId);
-          setIsLoading(false);
-          setUserLoading(false);
-        }
-      }
-    };
-
-    checkAuth();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [user, initializeAuth]);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -53,71 +24,66 @@ const Navbar = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="w-20 h-6 bg-gray-200 rounded animate-pulse"></div>
-          <div className="flex space-x-4">
-            <div className="w-16 h-6 bg-gray-200 rounded animate-pulse"></div>
-            <div className="w-16 h-6 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-        </div>
-      </nav>
-    );
-  }
-
+  // Add dark mode classes to the nav element
   return (
-    <nav className="bg-white shadow-sm">
+    <nav
+      className={`bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200 ${darkMode ? "dark" : ""}`}
+    >
       <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="text-xl font-semibold text-indigo-600">
-          TodoApp
-        </Link>
+        <div className="flex flex-col items-start gap-2 text-sm font-bold md:flex-row md:gap-24 md:text-align-baseline md:text-lg">
+          <Link
+            to="/"
+            className="text-xl font-semibold text-gray-900 dark:text-white"
+          >
+            TODO APP
+          </Link>
 
-        {isAuthenticated ? (
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-2">
-                <img
-                  src={user.avatar?.url || "https://via.placeholder.com/40"}
-                  alt="User Avatar"
-                  className="w-8 h-8 rounded-full"
-                />
-                <div className="text-right">
-                  <p className="text-sm font-medium">
-                    {user.username || "User"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {user.email || "user@example.com"}
-                  </p>
+          <h2>Welcome {user?.username || "User"}</h2>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <ThemeToggle />
+
+          {isAuthenticated ? (
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="flex items-center space-x-6">
+                  <img
+                    src={user.avatar?.url || "https://via.placeholder.com/40"}
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div className="text-right hidden sm:block">
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      {user.email || "user@example.com"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-600">Loading user...</div>
-            )}
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        ) : (
-          <div className="space-x-4">
-            <Link
-              to="/login"
-              className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
-            >
-              Register
-            </Link>
-          </div>
-        )}
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="flex space-x-4">
+              <Link
+                to="/login"
+                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

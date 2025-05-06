@@ -2,43 +2,60 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: "febincloudinary",
+  api_key: "515631893686945",
+  api_secret: "YaL-eiNQTe9NiUkVC8W54sDiQa0",
 });
 
-const uploadOnCloudinary = async (localFilePath) => {
+const uploadOnCloudinary = async function (localFilePath) {
   try {
-    if (!localFilePath) return null;
+    if (!localFilePath) throw new Error("No file path provided");
 
-    // Upload the file on Cloudinary
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
+      folder: "avatars", // Add folder organization
     });
 
-    // File has been uploaded successfully
-    fs.unlinkSync(localFilePath); // Remove locally saved temporary file
-    return response;
+    fs.unlinkSync(localFilePath);
+    return {
+      public_id: response.public_id,
+      url: response.secure_url,
+    };
   } catch (error) {
-    fs.unlinkSync(localFilePath); // Remove locally saved temporary file if upload fails
-    return null;
+    if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
+    throw error; // Propagate error instead of returning null
   }
 };
 
-const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+const deleteFromCloudinary = async (public_id) => {
   try {
-    if (!publicId) return null;
+    if (!public_id) return null;
 
-    // Delete file from Cloudinary
-    const response = await cloudinary.uploader.destroy(publicId, {
-      resource_type: resourceType,
+    const result = await cloudinary.uploader.destroy(public_id, {
+      resource_type: "image",
+      invalidate: true,
     });
-
-    return response;
+    console.log("Image deleted from cloudinary");
   } catch (error) {
-    console.error("Error deleting from Cloudinary:", error);
-    return null;
+    return error;
+    console.log("delete from cloudinary failed", error);
   }
 };
 
-export { uploadOnCloudinary, deleteFromCloudinary, cloudinary };
+const deleteVideoFromCloudinary = async (public_id) => {
+  try {
+    if (!public_id) return null;
+
+    //delete file from cloudinary
+    const result = await cloudinary.uploader.destroy(public_id, {
+      resource_type: "video",
+      invalidate: true,
+    });
+    console.log("delete from cloudinary");
+  } catch (error) {
+    return error;
+    console.log("delete on cloudinary failed", error);
+  }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary, deleteVideoFromCloudinary };

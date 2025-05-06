@@ -53,12 +53,25 @@ const authService = {
   },
 
   register: async (userData) => {
-    const response = await axiosInstance.post("/auth/register", userData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
+    try {
+      console.log("Sending registration request...");
+      const response = await axiosInstance.post("/auth/register", userData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        transformRequest: (data) => data, // Important for FormData
+      });
+
+      console.log("Registration successful:", response.data);
+      return response;
+    } catch (error) {
+      console.error("Registration failed:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
   },
 
   logout: async () => {

@@ -69,18 +69,27 @@ const useAuthStore = create(
         set({ isLoading: true, error: null });
         try {
           const response = await authService.register(userData);
+          if (!response.data?.data?.user) {
+            // Notice the .data.data.user
+            throw new Error("Registration response missing user data");
+          }
           set({
-            user: response.data.user,
-            accessToken: response.data.accessToken,
+            user: response.data.data.user,
+            accessToken: response.data.data.accessToken,
             isAuthenticated: true,
             isLoading: false,
             error: null,
           });
           return response;
         } catch (error) {
+          const errorMessage =
+            error.response?.data?.message ||
+            error.message ||
+            "Registration failed. Please try again.";
+          console.error("Registration error:", errorMessage, error);
           set({
             isLoading: false,
-            error: error.response?.data?.message || "Registration failed",
+            error: errorMessage,
           });
           throw error;
         }
