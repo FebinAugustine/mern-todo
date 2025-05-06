@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 import useThemeStore from "../../store/themeStore"; // Import theme store
 import authService from "../../api/auth";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ const Login = () => {
     });
   };
 
+  // Login component
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -31,13 +33,9 @@ const Login = () => {
       await login(formData);
       navigate("/dashboard");
     } catch (err) {
-      if (err.response?.status === 429) {
-        setError(
-          "Too many attempts. Please wait a few minutes before trying again."
-        );
-      } else {
-        setError(err.response?.data?.message || "Login failed");
-      }
+      let message = err.message; // Get message from thrown error
+      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }

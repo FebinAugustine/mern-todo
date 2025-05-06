@@ -1,16 +1,23 @@
 import express from "express";
 import { verifyJWT } from "../middleware/auth.js";
+import { uploadSingleAvatar } from "../middleware/upload.js";
 import {
   getUserProfile,
-  updateUserAvatar,
+  updateUserDetails,
+  updateAvatar,
+  updatePassword,
 } from "../controllers/userController.js";
-import { uploadSingleAvatar } from "../middleware/upload.js";
 
 const router = express.Router();
 
 router.use(verifyJWT);
 
 router.route("/profile").get(getUserProfile);
-router.route("/avatar").patch(uploadSingleAvatar, updateUserAvatar);
+
+router.route("/update-details").put(updateUserDetails);
+
+router.route("/update-avatar").put(uploadSingleAvatar, updateAvatar);
+
+router.route("/update-password").put(updatePassword);
 
 export default router;

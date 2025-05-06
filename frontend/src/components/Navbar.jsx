@@ -5,12 +5,18 @@ import ThemeToggle from "./ThemeToggle";
 import useThemeStore from "../store/themeStore";
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuthStore();
+  const { user, logout, isAuthenticated, initializeAuth } = useAuthStore();
+
   const { darkMode } = useThemeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const avatarUrl = user?.avatar?.url || "https://via.placeholder.com/40";
+
+  useEffect(() => {
+    // This will force re-render when user changes
+  }, [user?.username, user?.avatar?.url]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 500);
@@ -39,15 +45,17 @@ const Navbar = () => {
     };
   }, []);
 
+  // Force immediate logout cleanup
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      // Clear any residual state
+      window.location.href = "/login";
+      window.location.reload();
     } catch (error) {
-      console.error("Logout failed:", error);
+      window.location.href = "/login";
     }
   };
-
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
@@ -80,7 +88,7 @@ const Navbar = () => {
                   onClick={toggleDropdown}
                 >
                   <img
-                    src={user.avatar?.url || "https://via.placeholder.com/40"}
+                    src={avatarUrl}
                     alt="User Avatar"
                     className="w-8 h-8 rounded-full"
                   />
@@ -119,6 +127,12 @@ const Navbar = () => {
                           {user?.email || "user@example.com"}
                         </p>
                       </div>
+                      <Link
+                        to="/dashboard"
+                        className={`block px-4 py-2 pt-4 text-sm hover:${darkMode ? "bg-gray-600" : "bg-gray-100"}`}
+                      >
+                        Dashboard
+                      </Link>
                       <Link
                         to="/profile"
                         className={`block px-4 py-2 pt-4 text-sm hover:${darkMode ? "bg-gray-600" : "bg-gray-100"}`}

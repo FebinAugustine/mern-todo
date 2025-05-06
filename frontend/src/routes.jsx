@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ErrorPage from "./pages/ErrorPage";
 import App from "./App";
+import ProfilePage from "./pages/ProfilePage";
 
 const router = createBrowserRouter(
   [
@@ -17,7 +18,11 @@ const router = createBrowserRouter(
       children: [
         {
           index: true,
-          element: <Home />,
+          element: (
+            <AuthRedirect>
+              <Home />
+            </AuthRedirect>
+          ),
         },
         {
           path: "login",
@@ -42,6 +47,16 @@ const router = createBrowserRouter(
             {
               index: true,
               element: <Dashboard />,
+            },
+          ],
+        },
+        {
+          path: "profile",
+          element: <ProtectedRoute />,
+          children: [
+            {
+              index: true,
+              element: <ProfilePage />,
             },
           ],
         },

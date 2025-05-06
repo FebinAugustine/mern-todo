@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import rateLimit from "express-rate-limit";
+// import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { config } from "dotenv";
 import { errorHandler } from "./middleware/error.js";
@@ -32,13 +32,13 @@ app.use(
 );
 
 // 4. Rate Limiting (after CORS but before routes)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
-  standardHeaders: true, // Return rate limit info in headers
-  legacyHeaders: false, // Disable X-RateLimit-* headers
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 500, // limit each IP to 500 requests per windowMs
+//   standardHeaders: true, // Return rate limit info in headers
+//   legacyHeaders: false, // Disable X-RateLimit-* headers
+// });
+// app.use(limiter);
 
 // Routes import
 import authRouter from "./routes/authRoutes.js";

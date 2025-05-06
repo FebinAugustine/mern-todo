@@ -1,32 +1,77 @@
 import axiosInstance from "./axiosInstance";
+import useAuthStore from "../store/authStore"; // Add import
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Add request interceptor to inject token (modified)
-axiosInstance.interceptors.request.use((config) => {
-  // We'll handle the token injection differently
-  return config;
-});
+// auth.js
+let isRefreshing = false;
+let failedQueue = [];
 
-// Add response interceptor to handle token refresh
+const processQueue = (error) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve();
+  });
+  failedQueue = [];
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip refresh logic for auth endpoints
+    if (originalRequest.url.includes("/auth/")) {
+      return Promise.reject(error);
+    }
+
+    // Only handle 401 errors with valid refresh token
+    const hasRefreshToken = document.cookie.includes("refreshToken=");
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      hasRefreshToken
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((accessToken) => {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return axiosInstance(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        const response = await axiosInstance.post("/auth/refresh-token");
-        const { accessToken } = response.data;
+        const { accessToken, refreshToken, user } =
+          await authService.refreshToken();
 
-        // Update the original request with new token
+        // Update store
+        useAuthStore.getState().setAccessToken(accessToken);
+        useAuthStore.getState().setRefreshToken(refreshToken);
+        useAuthStore.getState().setUser(user);
+
+        // Update axios defaults
+        axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+
+        // Process queued requests
+        processQueue(null, accessToken);
+
+        // Retry original request
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // We'll handle logout in the component
+        // 6. Handle refresh failure
+        processQueue(refreshError);
+        useAuthStore.getState().logout();
+        window.location.href = "/login";
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
@@ -79,27 +124,68 @@ const authService = {
 
   refreshToken: async () => {
     try {
-      const response = await axiosInstance.get("/auth/refresh-token", {
-        withCredentials: true,
-      });
-
-      if (!response.data?.data?.user) {
-        // Note the nested structure from ApiResponse
-        throw new Error("No user data in refresh response");
-      }
-
-      // Return both user and accessToken
+      const response = await axiosInstance.get("/auth/refresh-token");
       return {
-        user: response.data.data.user,
-        accessToken: response.data.data.accessToken,
+        accessToken: response.data.accessToken,
+        refreshToken: response.data.refreshToken,
+        user: response.data.user,
       };
     } catch (error) {
-      console.error("Refresh token failed:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config,
-      });
+      console.error("Refresh token failed:", error);
       throw error;
+    }
+  },
+
+  getProfile: async () => {
+    try {
+      const response = await axiosInstance.get("/users/profile");
+      return response.data.data; // Extract nested data
+    } catch (error) {
+      throw error.response?.data?.message || "Failed to fetch profile";
+    }
+  },
+  updateUserDetails: async (details) => {
+    try {
+      const response = await axiosInstance.put(
+        "/users/update-details",
+        details
+      );
+      return response.data.data; // Return direct user data
+    } catch (error) {
+      throw error.response?.data?.message || "Update failed";
+    }
+  },
+
+  updateAvatar: async (avatarFile) => {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", avatarFile);
+      const response = await axiosInstance.put(
+        "/users/update-avatar",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response.data.data; // Return direct user data
+    } catch (error) {
+      throw error.response?.data?.message || "Avatar update failed";
+    }
+  },
+
+  updatePassword: async (passwords) => {
+    try {
+      const response = await axiosInstance.put(
+        "/users/update-password",
+        passwords
+      );
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Password update failed";
+      throw new Error(errorMessage); // Explicitly create new Error
     }
   },
 };

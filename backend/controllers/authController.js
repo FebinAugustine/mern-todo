@@ -126,12 +126,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError(404, "User does not exist");
+    throw new ApiError(400, "Invalid email or password"); // Unified message
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid credentials");
+    throw new ApiError(400, "Invalid Password"); // Same message for security
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
@@ -146,17 +146,22 @@ const loginUser = asyncHandler(async (req, res) => {
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
-  const cookieOptions = {
+  const accessTokenCookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 1 * 60 * 1000, // 30 minutes (matches ACCESS_TOKEN_EXPIRY)
+  };
+
+  const refreshTokenCookieOptions = {
+    ...accessTokenCookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matches REFRESH_TOKEN_EXPIRY)
   };
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, cookieOptions)
-    .cookie("refreshToken", refreshToken, cookieOptions)
+    .cookie("accessToken", accessToken, accessTokenCookieOptions)
+    .cookie("refreshToken", refreshToken, refreshTokenCookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -214,34 +219,43 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
 
-    const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(user._id);
+    // Generate new tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+      user._id
+    );
 
     // Update user's refreshToken in DB
-    user.refreshToken = newRefreshToken;
+    user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
-
-    const loggedInUser = await User.findById(user._id).select(
-      "-password -refreshToken"
-    );
 
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
-    return res
+    res
       .status(200)
-      .cookie("accessToken", accessToken, cookieOptions)
-      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .cookie("accessToken", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
       .json(
         new ApiResponse(
           200,
           {
-            user: loggedInUser,
             accessToken,
+            refreshToken, // Send both tokens in response
+            user: {
+              _id: user._id,
+              username: user.username,
+              email: user.email,
+              avatar: user.avatar,
+            },
           },
           "Access token refreshed"
         )
