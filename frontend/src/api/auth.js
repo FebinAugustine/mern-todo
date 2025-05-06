@@ -62,7 +62,6 @@ const authService = {
         transformRequest: (data) => data, // Important for FormData
       });
 
-      console.log("Registration successful:", response.data);
       return response;
     } catch (error) {
       console.error("Registration failed:", {

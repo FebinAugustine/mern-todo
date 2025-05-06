@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 import useThemeStore from "../../store/themeStore";
+// Add these imports at the top
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -59,17 +62,28 @@ const Register = () => {
         );
       }
 
-      // Verify FormData contents
-
-      // for (const [key, value] of formPayload.entries()) {
-      //   console.log(key, value);
-      // }
-
       const response = await register(formPayload);
 
       // Update the success check
       if (response?.data?.data?.user) {
-        navigate("/dashboard");
+        toast.success(
+          "🎉 Registration successful! Redirecting to Dashboard...",
+          {
+            position: "top-center",
+            autoClose: 2000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: darkMode ? "dark" : "light",
+          }
+        );
+
+        // Navigate after toast closes
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
       } else {
         throw new Error("Registration failed - no user data in response");
       }
